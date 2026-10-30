@@ -1,12 +1,27 @@
 import os
 import logging
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import threading
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
-# Вставьте сюда ваш токен от BotFather
-TOKEN = "9263148489:AAGL-1gkpgPKbC5yHnG-5Hja3JHcnz4ICWk"
+# 1. СРАЗУ ЗАПУСКАЕМ ВЕБ-СЕРВЕР ДЛЯ RENDER (чтобы порт открылся мгновенно)
+class SimpleHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is alive and running!")
 
-# Ваш ID в Telegram для получения чеков
+def run_server():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(("0.0.0.0", port), SimpleHandler)
+    server.serve_forever()
+
+# Запускаем веб-сервер в фоновом потоке
+threading.Thread(target=run_server, daemon=True).start()
+
+# Токен и настройки бота
+TOKEN = "9263148489:AAGL-1gkpgPKbC5yHnG-5Hja3JHcnz4ICWk"
 ADMIN_ID = 6930287933
 
 # Список ваших 15 гайдов с ценами в сомах и путями к PDF
@@ -58,7 +73,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("📚 **Выберите нужный гайд для покупки:**", reply_markup=reply_markup, parse_mode="Markdown")
 
     elif query.data == "pay_info":
-        # Отправляем картинку с QR-кодом
         try:
             with open("кюар.jpg", "rb") as photo_file:
                 await context.bot.send_photo(
@@ -97,14 +111,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("Главное меню:", reply_markup=reply_markup)
 
     elif query.data.startswith("approve_"):
-        # Админ нажал подтвердить оплату
         data_parts = query.data.split("_")
         target_user_id = int(data_parts[1])
         guide_key = data_parts[2] if len(data_parts) > 2 else "g1"
         
         guide = GUIDES.get(guide_key, GUIDES["g1"])
         
-        # Отправляем файл покупателю
         try:
             with open(guide["file"], "rb") as f:
                 await context.bot.send_document(
@@ -128,7 +140,6 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     selected_guide_key = context.user_data.get('selected_guide', 'g1')
     guide_title = GUIDES.get(selected_guide_key, {}).get('title', 'Гайд')
     
-    # Пересылаем чек админу с кнопками подтверждения
     keyboard = [
         [InlineKeyboardButton("✅ Подтвердить и выдать", callback_data=f"approve_{user.id}_{selected_guide_key}")],
         [InlineKeyboardButton("❌ Отклонить", callback_data=f"reject_{user.id}")]
@@ -144,22 +155,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text("✅ Чек принят! Как только администратор проверит платеж, вам автоматически придет PDF-файл.")
 
-# Мини-сервер для удержания порта на Render
-class SimpleHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"Bot is alive!")
-
-def run_server():
-    port = int(os.environ.get("PORT", 10000))
-    server = HTTPServer(("0.0.0.0", port), SimpleHandler)
-    server.serve_forever()
-
 def main():
-    # Запускаем веб-сервер в фоновом потоке
-    threading.Thread(target=run_server, daemon=True).start()
-    
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
