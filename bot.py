@@ -6,10 +6,10 @@ from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, Callb
 # Вставьте сюда ваш токен от BotFather
 TOKEN = "9263148489:AAGL-1gkpgPKbC5yHnG-5Hja3JHcnz4ICWk"
 
-# Ваш ID в Telegram, куда будут приходить чеки на подтверждение (узнать свой ID можно у @userinfobot)
-ADMIN_ID = 123456789  # ЗАМЕНИТЕ НА СВОЙ TELEGRAM ID!
+# Ваш ID в Telegram для получения чеков
+ADMIN_ID = 6930287933
 
-# Список ваших 15 гайдов с ценами в сомах и файлами (пути к PDF)
+# Список ваших 15 гайдов с ценами в сомах и путями к PDF
 GUIDES = {
     "g1": {"title": "1. Приемка новостройки у застройщика", "price": 300, "file": "guides/priemka.pdf"},
     "g2": {"title": "2. Сметный анти-развод (Проверка прораба)", "price": 250, "file": "guides/smeta.pdf"},
@@ -33,13 +33,13 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📁 Каталог гайдов (15 тем)", callback_data="catalog")],
-        [InlineKeyboardButton("💳 Реквизиты для оплаты", callback_data="pay_info")],
-        [InlineKeyboardButton("📞 Поддержка", url="https://t.me/ваш_логин")]
+        [InlineKeyboardButton("💳 QR-код для оплаты", callback_data="pay_info")],
+        [InlineKeyboardButton("📞 Поддержка", url="https://t.me/ustakg")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
         "👋 Добро пожаловать на портал **Usta.kg**!\n\n"
-        "Здесь собраны жесткие практические гайды без воды: честнные расчеты, разоблачения строителей и пошаговые чек-листы.\n\n"
+        "Здесь собраны жесткие практические гайды без воды: честные расчеты, разоблачения строителей и пошаговые чек-листы.\n\n"
         "Выберите нужный раздел ниже:",
         reply_markup=reply_markup,
         parse_mode="Markdown"
@@ -58,16 +58,17 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("📚 **Выберите нужный гайд для покупки:**", reply_markup=reply_markup, parse_mode="Markdown")
 
     elif query.data == "pay_info":
-        keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="catalog")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(
-            "💳 **Способы оплаты:**\n\n"
-            "Переведите сумму на карту / кошелек:\n"
-            "• **MBank / О!Деньги / DemirBank:** `1234 5678 9012 3456` (Азамат А.)\n\n"
-            "После оплаты отправьте сюда скриншот чека, и после проверки вы получите PDF-файл.",
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
-        )
+        # Отправляем картинку с QR-кодом
+        try:
+            with open("кюар.jpg", "rb") as photo_file:
+                await context.bot.send_photo(
+                    chat_id=query.message.chat_id,
+                    photo=photo_file,
+                    caption="💳 **Отсканируйте QR-код для оплаты** через любое банковское приложение (MBank, О!, Demir и др.).\n\nПосле оплаты отправьте скриншот чека ответным сообщением в этот чат.",
+                    parse_mode="Markdown"
+                )
+        except Exception as e:
+            await query.message.reply_text("Не удалось загрузить изображение QR-кода. Убедитесь, что файл 'кюар.jpg' загружен в репозиторий.")
 
     elif query.data.startswith("buy_"):
         guide_key = query.data.replace("buy_", "")
@@ -75,14 +76,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['selected_guide'] = guide_key
 
         keyboard = [
-            [InlineKeyboardButton("💳 Показать реквизиты", callback_data="pay_info")],
+            [InlineKeyboardButton("💳 Показать QR-код", callback_data="pay_info")],
             [InlineKeyboardButton("🔙 К списку гайдов", callback_data="catalog")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text(
             f"📖 Вы выбрали:\n**{guide['title']}**\n\n"
             f"💰 Стоимость: **{guide['price']} сом**\n\n"
-            f"Нажмите кнопку ниже для оплаты, после чего пришлите скриншот чека в этот чат.",
+            f"Нажмите кнопку ниже для получения QR-кода, после чего пришлите скриншот чека в этот чат.",
             reply_markup=reply_markup,
             parse_mode="Markdown"
         )
@@ -90,18 +91,46 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "main_menu":
         keyboard = [
             [InlineKeyboardButton("📁 Каталог гайдов (15 тем)", callback_data="catalog")],
-            [InlineKeyboardButton("💳 Реквизиты для оплаты", callback_data="pay_info")]
+            [InlineKeyboardButton("💳 QR-код для оплаты", callback_data="pay_info")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text("Главное меню:", reply_markup=reply_markup)
 
+    elif query.data.startswith("approve_"):
+        # Админ нажал подтвердить оплату
+        data_parts = query.data.split("_")
+        target_user_id = int(data_parts[1])
+        guide_key = data_parts[2] if len(data_parts) > 2 else "g1"
+        
+        guide = GUIDES.get(guide_key, GUIDES["g1"])
+        
+        # Отправляем файл покупателю
+        try:
+            with open(guide["file"], "rb") as f:
+                await context.bot.send_document(
+                    chat_id=target_user_id,
+                    document=f,
+                    caption=f"✅ Оплата подтверждена! Вот ваш гайд: **{guide['title']}**",
+                    parse_mode="Markdown"
+                )
+            await query.edit_message_caption(caption=query.message.caption + "\n\n🟢 **ОДОБРЕНО И ВЫДАНО**")
+        except Exception as e:
+            await query.message.reply_text(f"Ошибка при отправке файла гайда: {e}")
+
+    elif query.data.startswith("reject_"):
+        target_user_id = int(query.data.split("_")[1])
+        await context.bot.send_message(chat_id=target_user_id, text="❌ К сожалению, ваш платеж отклонен. Если это ошибка, обратитесь в поддержку.")
+        await query.edit_message_caption(caption=query.message.caption + "\n\n🔴 **ОТКЛОНЕНО**")
+
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.message.from_user
     photo = update.message.photo[-1].file_id
+    selected_guide_key = context.user_data.get('selected_guide', 'g1')
+    guide_title = GUIDES.get(selected_guide_key, {}).get('title', 'Гайд')
     
-    # Пересылаем чек вам (админу)
+    # Пересылаем чек админу с кнопками подтверждения
     keyboard = [
-        [InlineKeyboardButton("✅ Подтвердить и выдать гайд", callback_data=f"approve_{user.id}")],
+        [InlineKeyboardButton("✅ Подтвердить и выдать", callback_data=f"approve_{user.id}_{selected_guide_key}")],
         [InlineKeyboardButton("❌ Отклонить", callback_data=f"reject_{user.id}")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -109,27 +138,13 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_photo(
         chat_id=ADMIN_ID,
         photo=photo,
-        caption=f"🔔 Новый чек от @{user.username} (ID: {user.id})\nВыбранный гайд: {context.user_data.get('selected_guide', 'Не указан')}",
+        caption=f"🔔 Новый чек от @{user.username} (ID: {user.id})\nВыбранный гайд: {guide_title}",
         reply_markup=reply_markup
     )
     
-    await update.message.reply_text("✅ Чек принят! Как только администратор проверит платеж, вам придет PDF-файл.")
+    await update.message.reply_text("✅ Чек принят! Как только администратор проверит платеж, вам автоматически придет PDF-файл.")
 
-def main():
-    app = ApplicationBuilder().token(TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(button_handler))
-    app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
-    
-    print("Бот запущен...")
-    app.run_polling()
-
-if __name__ == "__main__":
-    main()
-    import os
-from http.server import HTTPServer, BaseHTTPRequestHandler
-import threading
-
+# Мини-сервер для удержания порта на Render
 class SimpleHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -141,5 +156,17 @@ def run_server():
     server = HTTPServer(("0.0.0.0", port), SimpleHandler)
     server.serve_forever()
 
-# Запускаем веб-сервер в отдельном потоке, чтобы он не мешал работе бота
-threading.Thread(target=run_server, daemon=True).start()
+def main():
+    # Запускаем веб-сервер в фоновом потоке
+    threading.Thread(target=run_server, daemon=True).start()
+    
+    app = ApplicationBuilder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(button_handler))
+    app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+    
+    print("Бот запущен...")
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
