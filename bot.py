@@ -5,7 +5,11 @@ import threading
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
-# 1. СРАЗУ ЗАПУСКАЕМ ВЕБ-СЕРВЕР ДЛЯ RENDER (чтобы порт открылся мгновенно)
+# Токен и настройки бота
+TOKEN = "9263148489:AAGL-1gkpgPKbC5yHnG-5Hja3JHcnz4ICWk"
+ADMIN_ID = 6930287933
+
+# 1. ЗАПУСКАЕМ МИНИ-СЕРВЕР ДЛЯ RENDER (чтобы порт сразу отвечал и сервис не падал)
 class SimpleHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -19,10 +23,6 @@ def run_server():
 
 # Запускаем веб-сервер в фоновом потоке
 threading.Thread(target=run_server, daemon=True).start()
-
-# Токен и настройки бота
-TOKEN = "9263148489:AAGL-1gkpgPKbC5yHnG-5Hja3JHcnz4ICWk"
-ADMIN_ID = 6930287933
 
 # Список ваших 15 гайдов с ценами в сомах и путями к PDF
 GUIDES = {
@@ -81,7 +81,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     caption="💳 **Отсканируйте QR-код для оплаты** через любое банковское приложение (MBank, О!, Demir и др.).\n\nПосле оплаты отправьте скриншот чека ответным сообщением в этот чат.",
                     parse_mode="Markdown"
                 )
-        except Exception as e:
+        except Exception:
             await query.message.reply_text("Не удалось загрузить изображение QR-кода. Убедитесь, что файл 'кюар.jpg' загружен в репозиторий.")
 
     elif query.data.startswith("buy_"):
@@ -157,11 +157,12 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     app = ApplicationBuilder().token(TOKEN).build()
+    
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     
-    print("Бот запущен...")
+    print("Бот успешно запущен и работает в режиме polling!")
     app.run_polling()
 
 if __name__ == "__main__":
