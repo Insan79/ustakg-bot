@@ -1,14 +1,27 @@
 import os
 import logging
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import threading
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, ContextTypes, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
 TOKEN = "9263148489:AAGL-1gkpgPKbC5yHnG-5Hja3JHcnz4ICWk"
 ADMIN_ID = 6930287933
 
-PORT = int(os.environ.get("PORT", 10000))
-# Используем ваш актуальный адрес с Render
-RENDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://ustakg-bot-1.onrender.com")
+# Мини-сервер для удержания порта на Render, чтобы сервис не засыпал мгновенно
+class SimpleHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is alive and running!")
+
+def run_server():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(("0.0.0.0", port), SimpleHandler)
+    server.serve_forever()
+
+# Запускаем веб-сервер в фоновом потоке
+threading.Thread(target=run_server, daemon=True).start()
 
 GUIDES = {
     "g1": {"title": "1. Приемка новостройки у застройщика", "price": 300, "file": "guides/priemka.pdf"},
@@ -141,21 +154,14 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("✅ Чек принят! Как только администратор проверит платеж, вам автоматически придет PDF-файл.")
 
 def main():
-    app = Application.builder().token(TOKEN).build()
+    app = ApplicationBuilder().token(TOKEN).build()
     
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     
-    webhook_url = f"{RENDER_URL}/{TOKEN}"
-    print(f"Запуск вебхука на URL: {webhook_url}")
-    
-    app.run_webhook(
-        listen="0.0.0.0",
-        port=PORT,
-        url_path=TOKEN,
-        webhook_url=webhook_url
-    )
+    print("Бот успешно запущен и работает в режиме polling!")
+    app.run_polling()
 
 if __name__ == "__main__":
     main()
