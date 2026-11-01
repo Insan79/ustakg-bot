@@ -24,21 +24,21 @@ def run_server():
 threading.Thread(target=run_server, daemon=True).start()
 
 GUIDES = {
-    "g1": {"title": "1. Приемка новостройки у застройщика", "price": 300, "file": "guides/priemka.pdf"},
-    "g2": {"title": "2. Сметный анти-развод (Проверка прораба)", "price": 250, "file": "guides/smeta.pdf"},
-    "g3": {"title": "3. Натяжные потолки (Анти-развод)", "price": 200, "file": "guides/potolki.pdf"},
-    "g4": {"title": "4. Пластиковые и алюминиевые окна", "price": 200, "file": "guides/okna.pdf"},
-    "g5": {"title": "5. Обои и малярка (Брак и контроль)", "price": 150, "file": "guides/oboi.pdf"},
-    "g6": {"title": "6. Кафель и плитка (Геометрия, заусовка)", "price": 250, "file": "guides/plitka.pdf"},
-    "g7": {"title": "7. Напольные покрытия (Ламинат/Кварцвинил)", "price": 200, "file": "guides/pola.pdf"},
-    "g8": {"title": "8. Межкомнатные двери", "price": 200, "file": "guides/dveri.pdf"},
-    "g9": {"title": "9. Мягкая мебель (Разоблачение цехов)", "price": 250, "file": "guides/mebel_soft.pdf"},
-    "g10": {"title": "10. Корпусная мебель и кухни", "price": 300, "file": "guides/kuhni.pdf"},
-    "g11": {"title": "11. Стяжка пола (Технология без трещин)", "price": 200, "file": "guides/styazhka.pdf"},
-    "g12": {"title": "12. Сантехника и скрытые работы", "price": 300, "file": "guides/santex.pdf"},
-    "g13": {"title": "13. Электрика и щитки", "price": 300, "file": "guides/elektrika.pdf"},
-    "g14": {"title": "14. Отопление и теплые полы", "price": 250, "file": "guides/otoplenie.pdf"},
-    "g15": {"title": "15. Договоры и работа с бригадами", "price": 250, "file": "guides/dogovor.pdf"},
+    "g1": {"title": "1. Приемка новостройки у застройщика", "price": 300, "file": "priemka.pdf"},
+    "g2": {"title": "2. Сметный анти-развод (Проверка прораба)", "price": 250, "file": "smeta.pdf"},
+    "g3": {"title": "3. Натяжные потолки (Анти-развод)", "price": 200, "file": "potolki.pdf"},
+    "g4": {"title": "4. Пластиковые и алюминиевые окна", "price": 200, "file": "okna.pdf"},
+    "g5": {"title": "5. Обои и малярка (Брак и контроль)", "price": 150, "file": "oboi.pdf"},
+    "g6": {"title": "6. Кафель и плитка (Геометрия, заусовка)", "price": 250, "file": "plitka.pdf"},
+    "g7": {"title": "7. Напольные покрытия (Ламинат/Кварцвинил)", "price": 200, "file": "pola.pdf"},
+    "g8": {"title": "8. Межкомнатные двери", "price": 200, "file": "dveri.pdf"},
+    "g9": {"title": "9. Мягкая мебель (Разоблачение цехов)", "price": 250, "file": "mebel_soft.pdf"},
+    "g10": {"title": "10. Корпусная мебель и кухни", "price": 300, "file": "kuhni.pdf"},
+    "g11": {"title": "11. Стяжка пола (Технология без трещин)", "price": 200, "file": "styazhka.pdf"},
+    "g12": {"title": "12. Сантехника и скрытые работы", "price": 300, "file": "santex.pdf"},
+    "g13": {"title": "13. Электрика и щитки", "price": 300, "file": "elektrika.pdf"},
+    "g14": {"title": "14. Отопление и теплые полы", "price": 250, "file": "otoplenie.pdf"},
+    "g15": {"title": "15. Договоры и работа с бригадами", "price": 250, "file": "dogovor.pdf"},
 }
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
